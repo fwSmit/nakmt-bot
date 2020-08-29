@@ -18,6 +18,7 @@ class MyClient(discord.Client):
     names_by_id = dict()
     timeJoined = dict()
 
+
     def get_gotcha_status(self):
         # returns string with the current gotcha status
         return_string = ""
@@ -74,61 +75,67 @@ class MyClient(discord.Client):
                 print("ERROR: don't know this person leaving the voice chat")
                 return
 
-            beginTime = self.timeJoined[member.id]
-            endTime = datetime.now()
-            diffTime = endTime-beginTime
-            self.totalTimesNoTimeSlot[member.id] += diffTime
-            
-            # I'm assuming total time is not more than like 24 hours, so the duration doesn't span accross an entire timespan
-            
-            # both in time slot
-            if self.isInTimeSlot(beginTime) and self.isInTimeSlot(endTime):
-                self.totalTimes[member.id] += diff_s
-                print("Duration (normal case): {} seconds".format(diff_s))
-                
-            # end time in time slot, begin time not
-            if self.isInTimeSlot(endTime_l) and not self.isInTimeSlot(endTime_l): 
-                actual_beginTime_l = endTime_l
-                actual_beginTime_l.tm_hour = 16
-                if endTime_l.tm_hour < 16:
-                    actual_beginTime_l.tm_wday -= 1
-                    
-                actual_beginTime_s = time.mktime(actual_beginTime_l)
-                actual_endTime_s = time.mktime(endTime_l)
-                actual_diff_s = actual_endTime_s - actual_beginTime_s
-                self.totalTimes[member.id] += actual_diff_s
-                print("Duration (case 2): {} seconds".format(actual_diff_s))
-
-            # end time not in time slot, begin time is
-            if not self.isInTimeSlot(endTime_l) and self.isInTimeSlot(endTime_l): 
-                actual_beginTime_l = beginTime_l
-                actual_endTime_l = beginTime_l
-                actual_endTime_l.tm_hour = 4
-                if beginTime_l.tm_hour < 16:
-                    actual_endTime_l.tm_wday -= 1
-                
-                actual_beginTime_s = time.mktime(actual_beginTime_l)
-                actual_endTime_s = time.mktime(endTime_l)
-                actual_diff_s = actual_endTime_s - actual_beginTime_s
-                self.totalTimes[member.id] += actual_diff_s
-                print("Duration (case 3): {} seconds".format(actual_diff_s))
-
-            # both not in time slot
-            if not self.isInTimeSlot(endTime_l) and not self.isInTimeSlot(endTime_l):
-                print("Both times are not in the time slot")
                 
             print("Total time: {}".format(self.totalTimes[member.id]))
+        
+        beginTime = self.timeJoined[member.id]
+        endTime = datetime.now()
         # member.id
         # member.display_name
 
+
+class Util:
+    interval_begin_hour = 16
+    interval_end_hour = 4
+    
     def isInTimeSlot(self, t: datetime):
         # Time slot is Mon-Fri 16:00 - 04:00
         weekday = t.date().weekday()
-        if t.hour >= 16 and weekday <= 4:
+        if t.hour >= self.interval_begin_hour and weekday < self.interval_end_hour:
             return True
-        if t.hour <= 4 and weekday > 0 and weekday <= 5:
+        if t.hour < self.interval_end_hour and weekday > 0 and weekday <= 5:
             return True
+        return False
+
+        
+    def calculateInterval(self, beginTime: datetime, endTime: datetime):
+        # I'm assuming total time is not more than about 12 hours, so the duration doesn't span accross an entire timespan
+        naive_diff = endTime-beginTime
+        
+        #check if the interval is more than 12 hours.
+        if naive_diff > timedelta(hours=12):
+            # Do not calculate the time correctly, but instead return naive diff
+            print("Time interval more than 12 hours, returning naive_diff")
+            return naive_diff
+        
+        # both in time slot
+        if self.isInTimeSlot(beginTime) and self.isInTimeSlot(endTime):
+            print("Duration (normal case): {} seconds".format(naive_diff))
+            return naive_diff
+            
+        # begin time in time slot and end time not
+        if self.isInTimeSlot(beginTime) and not self.isInTimeSlot(endTime): 
+            actual_beginTime = beginTime
+            actual_endTime = endTime.replace(hour=self.interval_end_hour,minute=0,second=0,microsecond=0)
+            actual_diff = actual_endTime - actual_beginTime
+            print("Duration (case 2): {} seconds".format(actual_diff))
+            return actual_diff
+
+        # begin time not in time slot, end time is
+        if not self.isInTimeSlot(beginTime) and self.isInTimeSlot(endTime): 
+            actual_endTime = endTime
+            actual_beginTime = beginTime.replace(hour=16,minute=0,second=0,microsecond=0)
+            actual_diff = actual_endTime - actual_beginTime
+            print("Duration (case 3): {} seconds".format(actual_diff))
+            return actual_diff
+        
+        # both not in time slot
+        if not self.isInTimeSlot(beginTime) and not self.isInTimeSlot(endTime):
+            print("Both times are not in the time slot")
+            return timedelta(0)
+    
 
 
-client = MyClient()
-client.run(TOKEN)
+
+#  client = MyClient()
+#  client.run(TOKEN)
