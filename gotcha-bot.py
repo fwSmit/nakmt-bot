@@ -6,6 +6,7 @@ import discord
 from dotenv import load_dotenv
 import time
 import math
+import datetime as dt
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
