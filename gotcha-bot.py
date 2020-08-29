@@ -14,13 +14,25 @@ class MyClient(discord.Client):
     totalTimes = dict()
     names_by_id = dict()
     timeJoined = dict()
+
+    def get_gotcha_status(self):
+        # returns string with the current gotcha status
+        return_string = ""
+        keys = list(self.totalTimes.keys())
+        values = list(self.totalTimes.values())
+        for i in range(len(keys)):
+            keys[i] = self.names_by_id[keys[i]]
+            return_string += "{} has a time of {} seconds".format(keys[i], values[i])
+        return return_string
+        
     
     async def on_message(self, message):
         if message.author == client.user:
             return
 
         if message.content == "!gotcha":
-            await message.channel.send("Got your message")
+            await message.channel.send("Current status:\n" + self.get_gotcha_status())
+            
 
         if not message.guild:
             # private message
@@ -28,11 +40,8 @@ class MyClient(discord.Client):
             if message.author.id == 237631697150017537:
                 print("received message from my author")
                 await message.channel.send("Giving the times to you")
-                keys = list(self.totalTimes.keys())
-                values = list(self.totalTimes.values())
-                for i in range(len(keys)):
-                    keys[i] = self.names_by_id[keys[i]]
-                    await message.channel.send("{} has a time of {}".format(keys[i], values[i]))
+                status = self.get_gotcha_status()
+                await message.channel.send(status)
                 
                 
 
