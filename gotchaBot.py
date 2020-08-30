@@ -3,10 +3,12 @@
 # bot.py
 import os
 import discord
+from discord.ext import tasks
 from dotenv import load_dotenv
-import time
 import math
 from datetime import datetime, timedelta
+import asyncio
+import time
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -17,6 +19,7 @@ class MyClient(discord.Client):
     totalTimesNoTimeSlot = dict()
     names_by_id = dict()
     timeJoined = dict()
+    enoughTime = [[dict()]*5]
 
 
     def get_gotcha_status(self):
@@ -25,10 +28,10 @@ class MyClient(discord.Client):
         keys = list(self.totalTimes.keys())
         values = list(self.totalTimes.values())
         for i in range(len(keys)):
-            keys[i] = self.names_by_id[keys[i]]
-            minutes = math.floor(values[i]/60)
-            hours = math.floor(values[i]/(60*60))
-            return_string += "{} has a time of {}h {}min".format(keys[i], hours, minutes)
+            name = self.names_by_id[keys[i]]
+            minutes = math.floor(values[i].seconds/60)
+            hours = math.floor(values[i].seconds/(60*60))
+            return_string += "{} has a time of {}h {}min".format(name, hours, minutes)
             
         return return_string
         
@@ -51,10 +54,38 @@ class MyClient(discord.Client):
                 await message.channel.send(status)
                 
                 
+    @tasks.loop(hours=1)
+    async def myloop(self):
+        hour = time.localtime().tm_hour
+        self.backup()
+        if hour == 6:
+            # check who has had enough time in the discord
+            currDay = datetime.now().day
+            currDay -= 1
+            for key in self.totalTimes:
+                t = self.totalTimes[key]
+                if t > timedelta(hours=1):
+                    print("{} has enough time")
+                    self.enoughTime[currDay][key] = 1
+
+            for key in self.totalTimes:
+                self.totalTimes[key] = timedelta(0)
+                    
+    def backup(self):
+        currMonth = datetime.now().month
+        currDay = datetime.now().day
+        currHour = datetime.now().hour
+        currMin = datetime.now().minute
+        with open ('backup_{}_{}_{}_{}'.format(currMonth, currDay, currHour, currMin)+".txt", 'w') as f:
+            f.write("total times:\n")
+            for key in self.totalTimes:
+                f.write("{} - {} - {}\n".format(key, self.totalTimes[key], self.names_by_id[key]))
+            
 
     async def on_ready(self):
         print(f'{client.user.name} has connected to Discord!')
         print('Guilds: {}'.format(self.guilds))
+        self.myloop.start()
 
     async def on_voice_state_update(self, member, before, after):
         print("Member {}".format(member.display_name))
@@ -75,11 +106,20 @@ class MyClient(discord.Client):
                 print("ERROR: don't know this person leaving the voice chat")
                 return
 
-                
+            u = Util()
+            beginTime = self.timeJoined[member.id]
+            endTime = datetime.now()
+            diff = u.calculateInterval(beginTime, endTime)
+            self.totalTimes[member.id] += diff
             print("Total time: {}".format(self.totalTimes[member.id]))
+            #  if self.totalTimes[member.id] > timedelta(hours=1):
+            if self.totalTimes[member.id] > timedelta(minutes=1):
+                print("This person has enough time")
+                day = endTime.date().day
+                #  if endTime.hour <
+                
+                
         
-        beginTime = self.timeJoined[member.id]
-        endTime = datetime.now()
         # member.id
         # member.display_name
 
@@ -90,6 +130,7 @@ class Util:
     
     def isInTimeSlot(self, t: datetime):
         # Time slot is Mon-Fri 16:00 - 04:00
+        return True
         weekday = t.date().weekday()
         if t.hour >= self.interval_begin_hour and weekday < self.interval_end_hour:
             return True
@@ -137,5 +178,6 @@ class Util:
 
 
 
-#  client = MyClient()
-#  client.run(TOKEN)
+client = MyClient()
+client.run(TOKEN)
+
