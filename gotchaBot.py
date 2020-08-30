@@ -19,7 +19,9 @@ class MyClient(discord.Client):
     totalTimesNoTimeSlot = dict()
     names_by_id = dict()
     timeJoined = dict()
-    enoughTime = [[dict()]*5]
+    enoughTime = [dict() for n in range(5)]
+    #  requiredTime = timedelta(hours=1)
+    requiredTime = timedelta(seconds=10)
 
 
     def get_gotcha_status(self):
@@ -35,6 +37,15 @@ class MyClient(discord.Client):
             
         return return_string
         
+    def get_signoff_status(self):
+        return_string = ""
+        for i in range(len(self.enoughTime)):
+            return_string += "Day: " + str(datetime.now().weekday) + "\n"
+            for key in self.enoughTime[i]:
+                name = self.names_by_id[key]
+                signed_off = self.enoughTime[i][key]
+                return_string += "{} has signed of status {}".format(name, signed_off)
+            
     
     async def on_message(self, message):
         if message.author == client.user:
@@ -51,7 +62,9 @@ class MyClient(discord.Client):
                 print("received message from my author")
                 await message.channel.send("Giving the times to you")
                 status = self.get_gotcha_status()
+                signed_off = self.get_signoff_status()
                 await message.channel.send(status)
+                await message.channel.send(signed_off)
                 
                 
     @tasks.loop(hours=1)
@@ -60,11 +73,11 @@ class MyClient(discord.Client):
         self.backup()
         if hour == 6:
             # check who has had enough time in the discord
-            currDay = datetime.now().day
+            currDay = datetime.now().weekday
             currDay -= 1
             for key in self.totalTimes:
                 t = self.totalTimes[key]
-                if t > timedelta(hours=1):
+                if t > self.requiredTime:
                     print("{} has enough time")
                     self.enoughTime[currDay][key] = 1
 
