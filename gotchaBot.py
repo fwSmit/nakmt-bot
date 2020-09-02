@@ -26,14 +26,14 @@ class MyClient(discord.Client):
 
     def get_gotcha_status(self):
         # returns string with the current gotcha status
-        return_string = ""
+        return_string = "Below you can see how long you have been in a voice channel in total today. This only gets updated when you leave a voice channel."
         keys = list(self.totalTimes.keys())
         values = list(self.totalTimes.values())
         for i in range(len(keys)):
             name = self.names_by_id[keys[i]]
             minutes = math.floor(values[i].seconds/60)
             hours = math.floor(values[i].seconds/(60*60))
-            return_string += "{} has a time of {}h {}min".format(name, hours, minutes)
+            return_string += "{} has a time of {}h {}min\n".format(name, hours, minutes)
             
         return return_string
         
@@ -46,6 +46,8 @@ class MyClient(discord.Client):
                 signed_off = self.enoughTime[i][key]
                 return_string += "{} has signed of status {}".format(name, signed_off)
             
+        if len(return_string) == 0:
+            return "Niemand is lang genoeg aanwezig geweest."
     
     async def on_message(self, message):
         if message.author == client.user:
@@ -139,10 +141,10 @@ class MyClient(discord.Client):
 
 class Util:
     interval_begin_hour = 16
-    interval_end_hour = 4
+    interval_end_hour = 2
     
     def isInTimeSlot(self, t: datetime):
-        # Time slot is Mon-Fri 16:00 - 04:00
+        # Time slot is Mon-Fri 16:00 - 02:00
         return True
         weekday = t.date().weekday()
         if t.hour >= self.interval_begin_hour and weekday < self.interval_end_hour:
