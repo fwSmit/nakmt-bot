@@ -142,12 +142,12 @@ class MyClient(discord.Client):
 class Util:
     interval_begin_hour = 16
     interval_end_hour = 2
+    maxInterval = 10
     
     def isInTimeSlot(self, t: datetime):
         # Time slot is Mon-Fri 16:00 - 02:00
-        return True
         weekday = t.date().weekday()
-        if t.hour >= self.interval_begin_hour and weekday < self.interval_end_hour:
+        if t.hour >= self.interval_begin_hour and weekday >= 0 and weekday < 5:
             return True
         if t.hour < self.interval_end_hour and weekday > 0 and weekday <= 5:
             return True
@@ -159,9 +159,9 @@ class Util:
         naive_diff = endTime-beginTime
         
         #check if the interval is more than 12 hours.
-        if naive_diff > timedelta(hours=12):
+        if naive_diff > timedelta(hours=self.maxInterval):
             # Do not calculate the time correctly, but instead return naive diff
-            print("Time interval more than 12 hours, returning naive_diff")
+            print("Time interval more than {} hours, returning naive_diff".format(self.maxInterval))
             return naive_diff
         
         # both in time slot
@@ -191,8 +191,5 @@ class Util:
             return timedelta(0)
     
 
-
-
 client = MyClient()
 client.run(TOKEN)
-
