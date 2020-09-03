@@ -22,6 +22,7 @@ class MyClient(discord.Client):
     enoughTime = [dict() for n in range(5)]
     #  requiredTime = timedelta(hours=1)
     requiredTime = timedelta(seconds=10)
+    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de soos"]
 
 
     def get_gotcha_status(self):
