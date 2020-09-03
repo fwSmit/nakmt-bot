@@ -31,7 +31,7 @@ class MyClient(discord.Client):
         values = list(self.totalTimes.values())
         for i in range(len(keys)):
             name = self.names_by_id[keys[i]]
-            minutes = math.floor(values[i].seconds/60)
+            minutes = math.floor(values[i].seconds/60) % 60
             hours = math.floor(values[i].seconds/(60*60))
             return_string += "{} has a time of {}h {}min\n".format(name, hours, minutes)
             
@@ -75,7 +75,7 @@ class MyClient(discord.Client):
         self.backup()
         if hour == 6:
             # check who has had enough time in the discord
-            currDay = datetime.now().weekday
+            currDay = datetime.now().weekday()
             currDay -= 1
             for key in self.totalTimes:
                 t = self.totalTimes[key]
@@ -106,7 +106,7 @@ class MyClient(discord.Client):
         print("Member {}".format(member.display_name))
         print("Member id {}".format(member.id))
         if before.channel == None and after.channel != None:
-            print("Joined voice channel")
+            print("Joined voice channel {}".format(after.channel.name))
             if member.id not in self.names_by_id:
                 # I dont know this person, adding to the dictionary
                 self.names_by_id[member.id] = member.display_name
@@ -123,6 +123,7 @@ class MyClient(discord.Client):
 
             u = Util()
             beginTime = self.timeJoined[member.id]
+            del self.timeJoined[member.id]
             endTime = datetime.now()
             diff = u.calculateInterval(beginTime, endTime)
             self.totalTimes[member.id] += diff
