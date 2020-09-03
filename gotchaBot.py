@@ -26,7 +26,7 @@ class MyClient(discord.Client):
 
     def get_gotcha_status(self):
         # returns string with the current gotcha status
-        return_string = "Below you can see how long you have been in a voice channel in total today. This only gets updated when you leave a voice channel."
+        return_string = "Below you can see how long you have been in a voice channel in total today. This only gets updated when you leave a voice channel.\n"
         keys = list(self.totalTimes.keys())
         values = list(self.totalTimes.values())
         for i in range(len(keys)):
