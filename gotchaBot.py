@@ -22,7 +22,7 @@ class MyClient(discord.Client):
     enoughTime = [dict() for n in range(5)]
     #  requiredTime = timedelta(hours=1)
     requiredTime = timedelta(seconds=10)
-    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de soos", "Gamen", "Spelletjestafel", "Minecraft", "Twitch"]
+    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen", "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf"]
 
 
     def get_gotcha_status(self):
@@ -106,7 +106,7 @@ class MyClient(discord.Client):
     def allowedChannel(self, c):
         if c is None:
             return False
-        if c in self.channelAllowList:
+        if c.name in self.channelAllowList:
             return True
         
         return False
@@ -114,6 +114,12 @@ class MyClient(discord.Client):
     async def on_voice_state_update(self, member, before, after):
         print("Member {}".format(member.display_name))
         print("Member id {}".format(member.id))
+        
+        # both not allowed
+        if not self.allowedChannel(before.channel) and not self.allowedChannel(after.channel):
+            print("Both channels are not allowed")
+            return
+        
         # From non allowd to allowed channel
         if not self.allowedChannel(before.channel) and self.allowedChannel(after.channel):
             print("Joined voice channel {}".format(after.channel.name))
