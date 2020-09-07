@@ -75,7 +75,7 @@ class Conversation:
         if self.validateAnswer(message.content):
             await self.say("That's the right answer", message.channel)
             self.progress = self.progress + 1
-            if self.progress > len(self.questions):
+            if self.progress > len(self.questions) - 1:
                 await self.say("You have gotten all questions correct!", message.channel)
             else:
                 question = self.questions[self.progress]
