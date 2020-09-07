@@ -1,5 +1,5 @@
 .env
 __pycache__
 backup_*
-deelnemers
+deelnemers.txt
 screenlog.*
