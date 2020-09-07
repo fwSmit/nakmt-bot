@@ -22,12 +22,12 @@ class MyClient(discord.Client):
     enoughTime = [dict() for n in range(5)]
     #  requiredTime = timedelta(hours=1)
     requiredTime = timedelta(seconds=10)
-    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de soos"]
+    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de soos", "Gamen", "Spelletjestafel", "Minecraft", "Twitch"]
 
 
     def get_gotcha_status(self):
         # returns string with the current gotcha status
-        return_string = "Below you can see how long you have been in a voice channel in total today. This only gets updated when you leave a voice channel.\n"
+        return_string = "Below you can see how long you have been in a voice channel today. This only gets updated when you leave a voice channel.\n"
         keys = list(self.totalTimes.keys())
         values = list(self.totalTimes.values())
         for i in range(len(keys)):
@@ -103,10 +103,19 @@ class MyClient(discord.Client):
         print('Guilds: {}'.format(self.guilds))
         self.myloop.start()
 
+    def allowedChannel(self, c):
+        if c is None:
+            return False
+        if c in self.channelAllowList:
+            return True
+        
+        return False
+
     async def on_voice_state_update(self, member, before, after):
         print("Member {}".format(member.display_name))
         print("Member id {}".format(member.id))
-        if before.channel == None and after.channel != None:
+        # From non allowd to allowed channel
+        if not self.allowedChannel(before.channel) and self.allowedChannel(after.channel):
             print("Joined voice channel {}".format(after.channel.name))
             if member.id not in self.names_by_id:
                 # I dont know this person, adding to the dictionary
@@ -116,7 +125,8 @@ class MyClient(discord.Client):
 
             self.timeJoined[member.id] = datetime.now()
                 
-        if before.channel != None and after.channel == None:
+        # From allowed channel to non allowd channel
+        if self.allowedChannel(before.channel) and not self.allowedChannel(after.channel):
             print("Left voice channel")
             if member.id not in self.names_by_id:
                 print("ERROR: don't know this person leaving the voice chat")
