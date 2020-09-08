@@ -42,16 +42,18 @@ class MyClient(discord.Client):
         return return_string
         
     def get_signoff_status(self):
-        return_string = "These members have signed off:\n"
+        return_string = ""
         for i in range(len(self.enoughTime)):
             return_string += "Day: " + str(datetime.now().weekday) + "\n"
             for key in self.enoughTime[i]:
                 name = self.names_by_id[key]
                 signed_off = self.enoughTime[i][key]
                 return_string += "{} has signed of status {}".format(name, signed_off)
-            
+        
         if len(return_string) == 0:
             return "Niemand is lang genoeg aanwezig geweest."
+        else:
+            return return_string
     
     async def on_message(self, message):
         if message.author == client.user:
