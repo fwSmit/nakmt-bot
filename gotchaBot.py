@@ -7,7 +7,6 @@ from discord.ext import tasks
 from dotenv import load_dotenv
 import math
 from datetime import datetime, timedelta
-import asyncio
 import time
 
 load_dotenv()
@@ -24,6 +23,10 @@ class MyClient(discord.Client):
     requiredTime = timedelta(seconds=10)
     channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen", "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf"]
 
+    def getPlayers(self):
+        with open('deelnemers.txt', 'r') as f:
+            return f.read()
+        
 
     def get_gotcha_status(self):
         # returns string with the current gotcha status
@@ -39,7 +42,7 @@ class MyClient(discord.Client):
         return return_string
         
     def get_signoff_status(self):
-        return_string = ""
+        return_string = "These members have signed off:\n"
         for i in range(len(self.enoughTime)):
             return_string += "Day: " + str(datetime.now().weekday) + "\n"
             for key in self.enoughTime[i]:
@@ -57,6 +60,8 @@ class MyClient(discord.Client):
         if message.content == "!gotcha":
             await message.channel.send("Current status:\n" + self.get_gotcha_status())
             
+        if message.content == "!deelnemers" or message.content == "!players":
+            await message.channel.send(self.getPlayers())
 
         if not message.guild:
             # private message
@@ -81,7 +86,8 @@ class MyClient(discord.Client):
             for key in self.totalTimes:
                 t = self.totalTimes[key]
                 if t > self.requiredTime:
-                    print("{} has enough time")
+                    name = self.names_by_id[key]
+                    print("{} has enough time".format(name))
                     self.enoughTime[currDay][key] = 1
 
             for key in self.totalTimes:
