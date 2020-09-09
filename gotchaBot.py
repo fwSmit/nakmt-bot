@@ -60,6 +60,7 @@ class MyClient(discord.Client):
             return
 
         if message.content == "!gotcha":
+            print(message.channel.id)
             await message.channel.send("Current status:\n" + self.get_gotcha_status())
             
         if message.content == "!deelnemers" or message.content == "!players":
@@ -92,8 +93,7 @@ class MyClient(discord.Client):
                     print("{} has enough time".format(name))
                     self.enoughTime[currDay][key] = 1
 
-            for key in self.totalTimes:
-                self.totalTimes[key] = timedelta(0)
+            self.totalTimes.clear()
                     
     def backup(self):
         currMonth = datetime.now().month
