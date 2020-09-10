@@ -39,21 +39,24 @@ class Conversation:
     testing = False
     progress = 0
     questions = [
-            "First question: What is my name?",
-            #  "Second question",
-            "Third question"
+            "Hello there. You need to answer a few questions to show you know me well. Use the information you've gathered well. \nFirst question: What is my name?",
+            "Second question: At which activity am I always present?",
+            "Third question: What is my favorite aquarium decoration?",
+            "Fourth question: What kind of water do I like to stay in?"
     ]
     answers = [
-            "Bob",
-            #  "Second",
-            "Third"
+            ["Bob", "bob de vis"],
+            ["ALV", "algemene ledenvergadering"],
+            ["De aardenwerken vis", "Aardenwerken vis", "Aardewerken vis", "De aardewerken vis"],
+            ["Formaline"]
     ]
 
     def validateAnswer(self, content):
-        l_answer = str.lower(self.answers[self.progress])
-        l_content = str.lower(content)
-        if l_content.find(l_answer) == 0:
-            return True
+        for a in self.answers[self.progress]:
+            l_answer = str.lower(a)
+            l_content = str.lower(content)
+            if l_content.find(l_answer) == 0:
+                return True
         
         return False
     
@@ -73,10 +76,10 @@ class Conversation:
             return
         
         if self.validateAnswer(message.content):
-            await self.say("That's the right answer", message.channel)
+            await self.say("That's correct!", message.channel)
             self.progress = self.progress + 1
             if self.progress > len(self.questions) - 1:
-                await self.say("You have gotten all questions correct!", message.channel)
+                await self.say("You have gotten all questions correct! Send the message 'Sterk water' to Jayce to show that you have completed the scavenger hunt.", message.channel)
             else:
                 question = self.questions[self.progress]
                 await self.say(question, message.channel)
