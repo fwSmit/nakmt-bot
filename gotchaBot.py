@@ -19,6 +19,8 @@ class MyClient(discord.Client):
     names_by_id = dict()
     timeJoined = dict()
     enoughTime = [dict() for n in range(5)]
+    botChannelId = 619951850031939594
+    privateChannelId = 737309942628745230
     #  requiredTime = timedelta(hours=1)
     requiredTime = timedelta(seconds=10)
     channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen", "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf"]
@@ -48,7 +50,7 @@ class MyClient(discord.Client):
             for key in self.enoughTime[i]:
                 name = self.names_by_id[key]
                 signed_off = self.enoughTime[i][key]
-                return_string += "{} has signed of status {}".format(name, signed_off)
+                return_string += "{} has signed of status {}\n".format(name, signed_off)
         
         if len(return_string) == 0:
             return "Niemand is lang genoeg aanwezig geweest."
@@ -83,6 +85,12 @@ class MyClient(discord.Client):
         hour = time.localtime().tm_hour
         self.backup()
         if hour == 6:
+            # send message with all the times in the bot channel
+            c = self.get_channel(self.botChannelId)
+            await c.send("Hier zijn de tijden van vandaag. Welterusten")
+            await c.send(self.get_gotcha_status())
+            p = self.get_channel(self.privateChannelId)
+            await p.send(self.get_signoff_status())
             # check who has had enough time in the discord
             currDay = datetime.now().weekday()
             currDay -= 1
