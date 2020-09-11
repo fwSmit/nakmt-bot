@@ -83,7 +83,7 @@ class Conversation:
             else:
                 question = self.questions[self.progress]
                 await self.say(question, message.channel)
-                await self.say("Progress: {}".format(self.progress), message.channel)
+                #  await self.say("Progress: {}".format(self.progress), message.channel)
         else:
             await self.say("That's not the right answer", message.channel)
             await self.say("The right answer is {}".format(self.answers[self.progress]), message.channel)
