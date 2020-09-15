@@ -69,6 +69,9 @@ class MyClient(discord.Client):
             print(message.channel.id)
             await message.channel.send("Current status:\n" + self.get_gotcha_status())
             
+        if message.content in ["!allowedChannels", "!allowedchannels", "!allowed"]:
+            await message.channel.send(self.get_allowed_channels())
+            
         if message.content == "!deelnemers" or message.content == "!players":
             await message.channel.send(self.getPlayers())
 
@@ -89,14 +92,16 @@ class MyClient(discord.Client):
         hour = time.localtime().tm_hour
         self.backup()
         if hour == 6:
-            # send message with all the times in the bot channel
-            c = self.get_channel(self.botChannelId)
-            await c.send("Hier zijn de tijden van vandaag. Welterusten")
-            await c.send(self.get_gotcha_status())
-            p = self.get_channel(self.privateChannelId)
-            await p.send(self.get_signoff_status())
-            # check who has had enough time in the discord
             currDay = datetime.now().weekday()
+            # send message with all the times in the bot channel
+            if currDay > 0 and currDay < 6:
+                c = self.get_channel(self.botChannelId)
+                await c.send("Hier zijn de tijden van vandaag. Welterusten")
+                await c.send(self.get_gotcha_status())
+                p = self.get_channel(self.privateChannelId)
+                await p.send(self.get_signoff_status())
+                
+            # check who has had enough time in the discord
             currDay -= 1
             for key in self.totalTimes:
                 t = self.totalTimes[key]
