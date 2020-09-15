@@ -31,7 +31,7 @@ class MyClient(discord.Client):
         
     def get_allowed_channels(self):
         return_string = "Allowed channels:\n"
-        return_string += str(self.allowedChannel)
+        return_string += str(self.channelAllowList)
         return return_string
 
     def get_gotcha_status(self):
