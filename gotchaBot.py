@@ -29,6 +29,10 @@ class MyClient(discord.Client):
         with open('deelnemers.txt', 'r') as f:
             return f.read()
         
+    def get_allowed_channels(self):
+        return_string = "Allowed channels:\n"
+        return_string += str(self.allowedChannel)
+        return return_string
 
     def get_gotcha_status(self):
         # returns string with the current gotcha status
@@ -46,7 +50,7 @@ class MyClient(discord.Client):
     def get_signoff_status(self):
         return_string = ""
         for i in range(len(self.enoughTime)):
-            return_string += "Day: " + str(datetime.now().weekday) + "\n"
+            return_string += "Day: " + str(datetime.now().weekday()) + "\n"
             for key in self.enoughTime[i]:
                 name = self.names_by_id[key]
                 signed_off = self.enoughTime[i][key]
