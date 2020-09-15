@@ -24,6 +24,8 @@ class MyClient(discord.Client):
     #  requiredTime = timedelta(hours=1)
     requiredTime = timedelta(seconds=10)
     channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen", "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf"]
+    helpMessage = "This is the gotcha bot. It records how low you have been in a voice channel. You can talk to me with the following commands:\n!gotcha: Get current times. This only updates when you leave a voice channel.\n!allowedChannels or !allowed: Print the voice channels where your time gets recorded.\n!deelnamers or !players: Print the players that are still in the game.\n!help: Print this help message."
+
 
     def getPlayers(self):
         with open('deelnemers.txt', 'r') as f:
@@ -74,6 +76,9 @@ class MyClient(discord.Client):
             
         if message.content == "!deelnemers" or message.content == "!players":
             await message.channel.send(self.getPlayers())
+
+        if message.content == "!ghelp":
+            await message.channel.send(self.helpMessage)
 
         if not message.guild:
             # private message
