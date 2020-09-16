@@ -52,7 +52,7 @@ class MyClient(discord.Client):
     def get_signoff_status(self):
         return_string = ""
         for i in range(len(self.enoughTime)):
-            return_string += "Day: " + str(datetime.now().weekday()) + "\n"
+            return_string += "Day: " + str(i) + "\n"
             for key in self.enoughTime[i]:
                 name = self.names_by_id[key]
                 signed_off = self.enoughTime[i][key]
@@ -147,7 +147,7 @@ class MyClient(discord.Client):
         
         # both not allowed
         if not self.allowedChannel(before.channel) and not self.allowedChannel(after.channel):
-            print("Both channels are not allowed")
+            print("Both channels are not allowed ({}, {})".format(before.channel.name, after.channel.name))
             return
         
         # From non allowd to allowed channel
