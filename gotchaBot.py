@@ -23,7 +23,7 @@ class MyClient(discord.Client):
     privateChannelId = 737309942628745230
     #  requiredTime = timedelta(hours=1)
     requiredTime = timedelta(seconds=10)
-    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen", "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf"]
+    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen", "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf", "Eettafel"]
     helpMessage = "This is the gotcha bot. It records how low you have been in a voice channel. You can talk to me with the following commands:\n!gotcha: Get current times. This only updates when you leave a voice channel.\n!allowedChannels or !allowed: Print the voice channels where your time gets recorded.\n!deelnamers or !players: Print the players that are still in the game.\n!ghelp: Print this help message."
 
 
@@ -147,7 +147,11 @@ class MyClient(discord.Client):
         
         # both not allowed
         if not self.allowedChannel(before.channel) and not self.allowedChannel(after.channel):
-            print("Both channels are not allowed ({}, {})".format(before.channel.name, after.channel.name))
+            print("Both channels are not allowed ")
+            if before.channel is not None:
+                print("First channel: ", before.channel.name)
+            if after.channel is not None:
+                print("Second channel: ", after.channel.name)
             return
         
         # From non allowd to allowed channel
