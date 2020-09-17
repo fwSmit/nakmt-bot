@@ -1,247 +1,165 @@
 #!/bin/python
 
+import logging
 # bot.py
 import os
+from datetime import datetime, timedelta, time
+
 import discord
+from discord import VoiceState, Member
 from discord.ext import tasks
 from dotenv import load_dotenv
-import math
-from datetime import datetime, timedelta
-import time
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-class MyClient(discord.Client):
+formatter = logging.Formatter('[%(levelname)s] %(asctime)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-    totalTimes = dict()
-    totalTimesNoTimeSlot = dict()
+logger = logging.getLogger('gotcha')
+logger.setLevel(logging.INFO)
+
+fileHandler = logging.FileHandler('gotcha.log')
+fileHandler.setLevel(logging.INFO)
+fileHandler.setFormatter(formatter)
+
+consoleHandler = logging.StreamHandler()
+consoleHandler.setLevel(logging.INFO)
+consoleHandler.setFormatter(formatter)
+
+logger.addHandler(fileHandler)
+logger.addHandler(consoleHandler)
+
+start_time = time(13, 00)
+end_time = time(2, 00)
+check_every_seconds = 1
+
+
+def isNowInTimePeriod(start: time, end: time, now: time):
+    if start < end:
+        return start <= now <= end
+    else:  # Over midnight
+        return now >= start or now <= end
+
+
+class GotchaBot(discord.Client):
     names_by_id = dict()
-    timeJoined = dict()
-    enoughTime = [dict() for n in range(5)]
+    totalTimesNewMethod = dict()
+    currentlyInAllowedChannel = set()
+
     botChannelId = 619951850031939594
     privateChannelId = 737309942628745230
-    #  requiredTime = timedelta(hours=1)
-    requiredTime = timedelta(seconds=10)
-    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen", "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf", "Eettafel"]
-    helpMessage = "This is the gotcha bot. It records how low you have been in a voice channel. You can talk to me with the following commands:\n!gotcha: Get current times. This only updates when you leave a voice channel.\n!allowedChannels or !allowed: Print the voice channels where your time gets recorded.\n!deelnamers or !players: Print the players that are still in the game.\n!ghelp: Print this help message."
+    botOwnerId = 237631697150017537
 
+    channelAllowList = ["Statafel (4x)", "Achterzaal", "Keuken", "Bar", "Dunste stukje van de Discord", "Gamen",
+                        "Spelletjestafel", "Minecraft", "Twitch", "One-night-werewolf", "Eettafel"]
 
-    def getPlayers(self):
-        with open('deelnemers.txt', 'r') as f:
-            return f.read()
-        
+    helpMessage = "This is the Gotcha bot. It records how long you have been in a voice channel. You can talk to me " \
+                  "with the following commands:\n!gotcha: Get current times. \n!allowedChannels or !allowed: Print " \
+                  "the voice channels where your time gets recorded.\n!ghelp: Print this help message. "
+
     def get_allowed_channels(self):
-        return_string = "Allowed channels:\n"
-        return_string += str(self.channelAllowList)
-        return return_string
+        return "Allowed channels: {}".format(", ".join(self.channelAllowList))
 
     def get_gotcha_status(self):
-        # returns string with the current gotcha status
-        return_string = "Below you can see how long you have been in a voice channel today. This only gets updated when you leave a voice channel.\n"
-        keys = list(self.totalTimes.keys())
-        values = list(self.totalTimes.values())
-        for i in range(len(keys)):
-            name = self.names_by_id[keys[i]]
-            minutes = math.floor(values[i].seconds/60) % 60
-            hours = math.floor(values[i].seconds/(60*60))
-            return_string += "{} has a time of {}h {}min\n".format(name, hours, minutes)
-            
+        return_string = "Below you can see how long you have been in a voice channel.\n\n"
+
+        for user_id_new, time_present_new in self.totalTimesNewMethod.items():
+            name = self.names_by_id[user_id_new]
+            seconds = time_present_new.seconds
+            mark = "X" if seconds > 3600 else " "
+            minutes = (seconds // 60) % 60
+            hours = seconds // 3600
+            seconds = seconds % 60
+
+            return_string += "[{}] {} has a time of {}h:{}m:{}s\n".format(mark, name, hours, minutes, seconds)
+
         return return_string
-        
-    def get_signoff_status(self):
-        return_string = ""
-        for i in range(len(self.enoughTime)):
-            return_string += "Day: " + str(i) + "\n"
-            for key in self.enoughTime[i]:
-                name = self.names_by_id[key]
-                signed_off = self.enoughTime[i][key]
-                return_string += "{} has signed of status {}\n".format(name, signed_off)
-        
-        if len(return_string) == 0:
-            return "Niemand is lang genoeg aanwezig geweest."
-        else:
-            return return_string
-    
+
+    @tasks.loop(seconds=check_every_seconds)
+    async def add_minute_to_people_in_allowed_channels(self):
+        now = datetime.now()
+        allowed_time_period = isNowInTimePeriod(start_time, end_time, now.time())
+
+        # Known bug: saturday  0 -> 2 doesnt count
+        if allowed_time_period and 0 <= now.weekday() < 5:
+            for person_id in self.currentlyInAllowedChannel:
+                if person_id in self.totalTimesNewMethod:
+                    self.totalTimesNewMethod[person_id] += timedelta(seconds=check_every_seconds)
+                else:
+                    self.totalTimesNewMethod[person_id] = timedelta(0)
+
+    @tasks.loop(minutes=1)
+    async def backup_and_reset(self):
+        ids_to_names = {self.names_by_id[k] for k in self.currentlyInAllowedChannel}
+        times_with_names = {self.names_by_id[k]: v.seconds for k, v in self.totalTimesNewMethod.items()}
+
+        logger.info("Current active people: %s, Current times: %s", ids_to_names, times_with_names)
+        now = datetime.now()
+
+        gotcha_status_string = self.get_gotcha_status()
+        yesterday = now - timedelta(days=1)
+        p = self.get_channel(self.privateChannelId)
+        await p.send("Here are the times from {}. Goodnight!".format(yesterday.strftime('%A %d-%m')))
+        await p.send(gotcha_status_string)
+
+        if now.hour == 3:
+            if 0 < now.weekday() < 6:
+                gotcha_status_string = self.get_gotcha_status()
+                yesterday = now - timedelta(days=1)
+
+                c = self.get_channel(self.botChannelId)
+                await c.send("Here are the times from {}. Goodnight!".format(yesterday.strftime('%A %d-%m')))
+                await c.send(gotcha_status_string)
+
+                p = self.get_channel(self.privateChannelId)
+                await p.send("Here are the times from {}. Goodnight!".format(yesterday.strftime('%A %d-%m')))
+                await p.send(gotcha_status_string)
+
+            self.totalTimesNewMethod.clear()
+
+    async def on_ready(self):
+        logger.info(f'{client.user.name} has connected to Discord!')
+        logger.info('Guilds: {}'.format(self.guilds))
+        self.backup_and_reset.start()
+        self.add_minute_to_people_in_allowed_channels.start()
+
+    def allowedChannel(self, c):
+        return c and c.name in self.channelAllowList
+
     async def on_message(self, message):
         if message.author == client.user:
             return
 
         if message.content == "!gotcha":
-            print(message.channel.id)
             await message.channel.send("Current status:\n" + self.get_gotcha_status())
-            
-        if message.content in ["!allowedChannels", "!allowedchannels", "!allowed"]:
+        elif message.content in ["!allowedChannels", "!allowedchannels", "!allowed"]:
             await message.channel.send(self.get_allowed_channels())
-            
-        if message.content == "!deelnemers" or message.content == "!players":
-            await message.channel.send(self.getPlayers())
-
-        if message.content == "!ghelp":
+        elif message.content == "!ghelp":
             await message.channel.send(self.helpMessage)
-
-        if not message.guild:
+        elif not message.guild:
             # private message
-            print("recieved PM")
-            if message.author.id == 237631697150017537:
-                print("received message from my author")
+            logger.info(
+                "Recieved PM from {}, {}, message: {}".format(message.author.id, message.author.name, message.content)
+            )
+            if message.author.id == self.botOwnerId:
                 await message.channel.send("Giving the times to you")
-                status = self.get_gotcha_status()
-                signed_off = self.get_signoff_status()
-                await message.channel.send(status)
-                await message.channel.send(signed_off)
-                
-                
-    @tasks.loop(hours=1)
-    async def myloop(self):
-        hour = time.localtime().tm_hour
-        self.backup()
-        if hour == 6:
-            currDay = datetime.now().weekday()
-            # send message with all the times in the bot channel
-            if currDay > 0 and currDay < 6:
-                c = self.get_channel(self.botChannelId)
-                await c.send("Hier zijn de tijden van vandaag. Welterusten")
-                await c.send(self.get_gotcha_status())
-                p = self.get_channel(self.privateChannelId)
-                await p.send(self.get_signoff_status())
-                
-            # check who has had enough time in the discord
-            currDay -= 1
-            for key in self.totalTimes:
-                t = self.totalTimes[key]
-                if t > self.requiredTime:
-                    name = self.names_by_id[key]
-                    print("{} has enough time".format(name))
-                    self.enoughTime[currDay][key] = 1
+                await message.channel.send(self.get_gotcha_status())
 
-            self.totalTimes.clear()
-                    
-    def backup(self):
-        currMonth = datetime.now().month
-        currDay = datetime.now().day
-        currHour = datetime.now().hour
-        currMin = datetime.now().minute
-        with open ('backup_{}_{}_{}_{}'.format(currMonth, currDay, currHour, currMin)+".txt", 'w') as f:
-            f.write("total times:\n")
-            for key in self.totalTimes:
-                f.write("{} - {} - {}\n".format(key, self.totalTimes[key], self.names_by_id[key]))
-            
+    async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState):
+        logger.info(
+            "id: {}, Member: {}, Channel: {} -> {}".format(member.id, member.display_name, before.channel, after.channel)
+        )
 
-    async def on_ready(self):
-        print(f'{client.user.name} has connected to Discord!')
-        print('Guilds: {}'.format(self.guilds))
-        self.myloop.start()
+        self.names_by_id[member.id] = member.display_name
 
-    def allowedChannel(self, c):
-        if c is None:
-            return False
-        if c.name in self.channelAllowList:
-            return True
-        
-        return False
+        if self.allowedChannel(after.channel):
+            if member.id not in self.currentlyInAllowedChannel:
+                self.currentlyInAllowedChannel.add(member.id)
 
-    async def on_voice_state_update(self, member, before, after):
-        print("Member {}".format(member.display_name))
-        print("Member id {}".format(member.id))
-        
-        # both not allowed
-        if not self.allowedChannel(before.channel) and not self.allowedChannel(after.channel):
-            print("Both channels are not allowed ")
-            if before.channel is not None:
-                print("First channel: ", before.channel.name)
-            if after.channel is not None:
-                print("Second channel: ", after.channel.name)
-            return
-        
-        # From non allowd to allowed channel
-        if not self.allowedChannel(before.channel) and self.allowedChannel(after.channel):
-            print("Joined voice channel {}".format(after.channel.name))
-            if member.id not in self.names_by_id:
-                # I dont know this person, adding to the dictionary
-                self.names_by_id[member.id] = member.display_name
-                self.totalTimes[member.id] = timedelta(0)
-                self.totalTimesNoTimeSlot[member.id] = timedelta(0)
-
-            self.timeJoined[member.id] = datetime.now()
-                
-        # From allowed channel to non allowd channel
-        if self.allowedChannel(before.channel) and not self.allowedChannel(after.channel):
-            print("Left voice channel")
-            if member.id not in self.names_by_id:
-                print("ERROR: don't know this person leaving the voice chat")
-                return
-
-            u = Util()
-            beginTime = self.timeJoined[member.id]
-            del self.timeJoined[member.id]
-            endTime = datetime.now()
-            diff = u.calculateInterval(beginTime, endTime)
-            self.totalTimes[member.id] += diff
-            print("Total time: {}".format(self.totalTimes[member.id]))
-            #  if self.totalTimes[member.id] > timedelta(hours=1):
-            if self.totalTimes[member.id] > timedelta(minutes=1):
-                print("This person has enough time")
-                day = endTime.date().day
-                #  if endTime.hour <
-                
-                
-        
-        # member.id
-        # member.display_name
+        if not self.allowedChannel(after.channel):
+            if member.id in self.currentlyInAllowedChannel:
+                self.currentlyInAllowedChannel.remove(member.id)
 
 
-class Util:
-    interval_begin_hour = 16
-    interval_end_hour = 2
-    maxInterval = 10
-    
-    def isInTimeSlot(self, t: datetime):
-        # Time slot is Mon-Fri 16:00 - 02:00
-        weekday = t.date().weekday()
-        if t.hour >= self.interval_begin_hour and weekday >= 0 and weekday < 5:
-            return True
-        if t.hour < self.interval_end_hour and weekday > 0 and weekday <= 5:
-            return True
-        return False
-
-        
-    def calculateInterval(self, beginTime: datetime, endTime: datetime):
-        # I'm assuming total time is not more than about 12 hours, so the duration doesn't span accross an entire timespan
-        naive_diff = endTime-beginTime
-        
-        #check if the interval is more than 12 hours.
-        if naive_diff > timedelta(hours=self.maxInterval):
-            # Do not calculate the time correctly, but instead return naive diff
-            print("Time interval more than {} hours, returning naive_diff".format(self.maxInterval))
-            return naive_diff
-        
-        # both in time slot
-        if self.isInTimeSlot(beginTime) and self.isInTimeSlot(endTime):
-            print("Duration (normal case): {} seconds".format(naive_diff))
-            return naive_diff
-            
-        # begin time in time slot and end time not
-        if self.isInTimeSlot(beginTime) and not self.isInTimeSlot(endTime): 
-            actual_beginTime = beginTime
-            actual_endTime = endTime.replace(hour=self.interval_end_hour,minute=0,second=0,microsecond=0)
-            actual_diff = actual_endTime - actual_beginTime
-            print("Duration (case 2): {} seconds".format(actual_diff))
-            return actual_diff
-
-        # begin time not in time slot, end time is
-        if not self.isInTimeSlot(beginTime) and self.isInTimeSlot(endTime): 
-            actual_endTime = endTime
-            actual_beginTime = beginTime.replace(hour=16,minute=0,second=0,microsecond=0)
-            actual_diff = actual_endTime - actual_beginTime
-            print("Duration (case 3): {} seconds".format(actual_diff))
-            return actual_diff
-        
-        # both not in time slot
-        if not self.isInTimeSlot(beginTime) and not self.isInTimeSlot(endTime):
-            print("Both times are not in the time slot")
-            return timedelta(0)
-    
-
-client = MyClient()
+client = GotchaBot()
 client.run(TOKEN)
