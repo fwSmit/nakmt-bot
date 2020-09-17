@@ -28,7 +28,7 @@ consoleHandler.setFormatter(formatter)
 logger.addHandler(fileHandler)
 logger.addHandler(consoleHandler)
 
-start_time = time(13, 00)
+start_time = time(16, 00)
 end_time = time(2, 00)
 check_every_seconds = 1
 
@@ -80,7 +80,7 @@ class GotchaBot(discord.Client):
         allowed_time_period = isNowInTimePeriod(start_time, end_time, now.time())
 
         # Known bug: saturday 0 -> 2 doesnt count
-        if allowed_time_period and 0 <= now.weekday() < 5:
+        if allowed_time_period and 0 <= now.weekday() < 5 or now.weekday() is 5 and now < end_time:
             for person_id in self.currentlyInAllowedChannel:
                 if person_id in self.totalTimesNewMethod:
                     self.totalTimesNewMethod[person_id] += timedelta(seconds=check_every_seconds)
@@ -94,12 +94,6 @@ class GotchaBot(discord.Client):
 
         logger.info("Current active people: %s, Current times: %s", ids_to_names, times_with_names)
         now = datetime.now()
-
-        gotcha_status_string = self.get_gotcha_status()
-        yesterday = now - timedelta(days=1)
-        p = self.get_channel(self.privateChannelId)
-        await p.send("Here are the times from {}. Goodnight!".format(yesterday.strftime('%A %d-%m')))
-        await p.send(gotcha_status_string)
 
         if now.hour == 3:
             if 0 < now.weekday() < 6:
