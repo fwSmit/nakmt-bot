@@ -88,7 +88,7 @@ class GotchaBot(discord.Client):
                 else:
                     self.totalTimesNewMethod[person_id] = timedelta(0)
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(hours=1)
     async def backup_and_reset(self):
         ids_to_names = {self.names_by_id[k] for k in self.currentlyInAllowedChannel}
         times_with_names = {self.names_by_id[k]: v.seconds for k, v in self.totalTimesNewMethod.items()}
@@ -139,7 +139,7 @@ class GotchaBot(discord.Client):
         elif not message.guild:
             # private message
             logger.info(
-                "Recieved PM from {}, {}, message: {}".format(message.author.id, message.author.name, message.content)
+                "Received PM from {}, {}, message: {}".format(message.author.id, message.author.name, message.content)
             )
             if message.author.id == self.botOwnerId:
                 await message.channel.send("Giving the times to you")
