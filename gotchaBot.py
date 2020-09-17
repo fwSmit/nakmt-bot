@@ -1,8 +1,7 @@
-#!/bin/python
+#!/usr/bin/env python3
 
-import logging
-# bot.py
 import os
+import logging
 from datetime import datetime, timedelta, time
 
 import discord
@@ -80,7 +79,7 @@ class GotchaBot(discord.Client):
         now = datetime.now()
         allowed_time_period = isNowInTimePeriod(start_time, end_time, now.time())
 
-        # Known bug: saturday  0 -> 2 doesnt count
+        # Known bug: saturday 0 -> 2 doesnt count
         if allowed_time_period and 0 <= now.weekday() < 5:
             for person_id in self.currentlyInAllowedChannel:
                 if person_id in self.totalTimesNewMethod:
