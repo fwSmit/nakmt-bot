@@ -80,7 +80,7 @@ class GotchaBot(discord.Client):
         allowed_time_period = isNowInTimePeriod(start_time, end_time, now.time())
 
         # Known bug: saturday 0 -> 2 doesnt count
-        if allowed_time_period and 0 <= now.weekday() < 5 or now.weekday() is 5 and now < end_time:
+        if (allowed_time_period and 0 <= now.weekday() < 5) or (now.weekday() == 5 and now.time() < end_time):
             for person_id in self.currentlyInAllowedChannel:
                 if person_id in self.totalTimesNewMethod:
                     self.totalTimesNewMethod[person_id] += timedelta(seconds=check_every_seconds)
